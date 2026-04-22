@@ -39,7 +39,7 @@ app.use(session({
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "Rich@2005",
+  password: process.env.DB_PASSWORD,
   database: "sso_auth",
 });
 
