@@ -11,29 +11,9 @@ const app = express();
 
 app.use(express.json());
 
+app.use(cors());
+
 app.use(express.static("public"));
-
-const session = require("express-session");
-const cookieParser = require("cookie-parser");
-
-app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:4000"],
-  credentials: true
-}));
-
-app.use(cookieParser());
-
-app.use(session({
-  name: "sso_session",   // 🔥 important (custom name)
-  secret: "supersecret",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure: false,        // true only with HTTPS
-    sameSite: "lax"       // 🔥 VERY IMPORTANT
-  }
-}));
 
 
 const db = mysql.createConnection({
@@ -81,50 +61,36 @@ app.post("/login", (req, res) => {
       if (!valid)
         return res.status(401).json({ error: "Wrong password" });
 
-      // ✅ STORE SESSION
-      req.session.user = {
-        id: user.id,
-        username: user.username
-      };
+      // ✅ CREATE TOKEN
+      const token = jwt.sign(
+        { id: user.id, username: user.username },
+        process.env.JWT_SECRET || "supersecret",
+        { expiresIn: "1h" }
+      );
 
-      res.json({ message: "Login successful" });
+      res.json({ message: "Login successful", token });
     }
   );
 });
 
 
 app.get("/check-auth", (req, res) => {
-  if (req.session.user) {
-    res.json(req.session.user);
-  } else {
-    res.status(401).json({ error: "Not logged in" });
+  let token = req.headers.authorization;
+  if (token && token.startsWith("Bearer ")) {
+    token = token.slice(7);
   }
-});
-
-// ---------- VERIFY ----------
-app.get("/verify", (req, res) => {
-  const token = req.headers.authorization;
 
   if (!token) return res.status(401).json({ error: "No token" });
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, process.env.JWT_SECRET || "supersecret", (err, decoded) => {
     if (err) return res.status(401).json({ error: "Invalid token" });
     res.json(decoded);
   });
 });
 
 app.post("/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("sso_session"); // 🔥 MUST match session name
-    res.json({ message: "Logged out" });
-  });
-});
-
-app.get("/debug", (req, res) => {
-  res.json({
-    session: req.session,
-    cookies: req.cookies
-  });
+  // Tokens are stateless, but we can return success
+  res.json({ message: "Logged out from SSO" });
 });
 
 app.listen(5000, () => console.log("Auth Server running on 5000"));

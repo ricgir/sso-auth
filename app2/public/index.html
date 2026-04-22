@@ -9,9 +9,17 @@
 <button onclick="logout()">Logout</button>
 
 <script>
+const urlParams = new URLSearchParams(window.location.search);
+const urlToken = urlParams.get("token");
+if (urlToken) {
+  localStorage.setItem("sso_token", urlToken);
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
+
 function goToDashboard() {
-  fetch("http://localhost:4000/dashboard", {
-    credentials: "include"   // 🔥 IMPORTANT
+  const token = localStorage.getItem("sso_token");
+  fetch("/dashboard", {
+    headers: { "Authorization": token ? `Bearer ${token}` : "" }
   })
   .then(res => {
     if (res.redirected) {
@@ -30,13 +38,10 @@ function goToDashboard() {
 
 // Logout
 async function logout() {
-  await fetch("http://localhost:5000/logout", {
-    method: "POST",
-    credentials: "include"
-  });
+  localStorage.removeItem("sso_token");
 
   window.location.href =
-    "http://localhost:5000/login.html?redirect=http://localhost:4000";
+    `http://${window.location.hostname}:5000/login.html?action=logout&redirect=${window.location.origin}`;
 }
 </script>
 

@@ -8,11 +8,14 @@ app.use(express.static("public"));
 // Middleware to verify token
 const auth = async (req, res, next) => {
   try {
+    const token = req.headers.authorization;
+    if (!token) throw new Error("No token");
+
     const response = await axios.get(
       "http://localhost:5000/check-auth",
       {
         headers: {
-          cookie: req.headers.cookie   // 🔥 CRITICAL FIX
+          Authorization: token
         }
       }
     );
@@ -21,8 +24,10 @@ const auth = async (req, res, next) => {
     next();
 
   } catch {
+    const host = req.hostname;
+    const origin = req.protocol + "://" + req.get("host");
     return res.redirect(
-      "http://localhost:5000/login.html?redirect=http://localhost:3000"
+      `http://${host}:5000/login.html?redirect=${origin}`
     );
   }
 };
