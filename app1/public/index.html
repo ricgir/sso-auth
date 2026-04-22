@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>App1</h2>
+
+<button onclick="goToDashboard()">Go to Dashboard</button>
+<br><br>
+<button onclick="logout()">Logout</button>
+
+<script>
+function goToDashboard() {
+  fetch("http://localhost:3000/dashboard", {
+    credentials: "include"   // 🔥 IMPORTANT
+  })
+  .then(res => {
+    if (res.redirected) {
+      window.location.href = res.url;
+      return;
+    }
+    return res.text();
+  })
+  .then(data => {
+    if (data) alert(data);
+  });
+}
+
+// Logout
+async function logout() {
+  await fetch("http://localhost:5000/logout", {
+    method: "POST",
+    credentials: "include"
+  });
+
+  window.location.href =
+    "http://localhost:5000/login.html?redirect=http://localhost:3000";
+}
+</script>
+
+</body>
+</html>
