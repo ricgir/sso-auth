@@ -6,6 +6,9 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const path = require("path");
+const { OAuth2Client } = require("google-auth-library");
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const app = express();
 
@@ -15,12 +18,15 @@ app.use(cors());
 
 app.use(express.static("public"));
 
+app.get("/config", (req, res) => {
+  res.json({ googleClientId: process.env.GOOGLE_CLIENT_ID });
+});
 
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD,
-  database: "sso_auth",
+  database: process.env.DB_NAME || "sso_auth",
 });
 
 // ---------- REGISTER ----------
@@ -73,6 +79,61 @@ app.post("/login", (req, res) => {
   );
 });
 
+// ---------- GOOGLE LOGIN ----------
+app.post("/auth/google", async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) return res.status(400).json({ error: "No credential provided" });
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, sub: google_id, name } = payload;
+
+    // Check if user exists by email or google_id
+    db.query(
+      "SELECT * FROM users WHERE email = ? OR google_id = ?",
+      [email, google_id],
+      (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        if (results.length > 0) {
+          // User exists, generate SSO token
+          const user = results[0];
+          const token = jwt.sign(
+            { id: user.id, username: user.username },
+            process.env.JWT_SECRET || "supersecret",
+            { expiresIn: "1h" }
+          );
+          return res.json({ message: "Login successful", token });
+        } else {
+          // New user -> register and login
+          db.query(
+            "INSERT INTO users (username, email, google_id) VALUES (?, ?, ?)",
+            [email, email, google_id],
+            (insertErr, insertResult) => {
+              if (insertErr) {
+                console.error(insertErr);
+                return res.status(500).json({ error: insertErr.message });
+              }
+              const token = jwt.sign(
+                { id: insertResult.insertId, username: email },
+                process.env.JWT_SECRET || "supersecret",
+                { expiresIn: "1h" }
+              );
+              return res.json({ message: "Registered and logged in successfully", token });
+            }
+          );
+        }
+      }
+    );
+  } catch (err) {
+    console.error("Error verifying token:", err);
+    res.status(401).json({ error: "Invalid Google token" });
+  }
+});
 
 app.get("/check-auth", (req, res) => {
   let token = req.headers.authorization;

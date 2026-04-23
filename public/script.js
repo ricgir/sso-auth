@@ -1,7 +1,9 @@
 const BASE = `http://${window.location.hostname}:5000`;
 
 // -------- AUTO LOGIN IF REMEMBERED --------
-window.onload = async () => {
+window.addEventListener("load", async () => {
+  initGoogleAuth();
+  
   const params = new URLSearchParams(window.location.search);
   
   if (params.get("action") === "logout") {
@@ -35,7 +37,7 @@ window.onload = async () => {
       localStorage.removeItem("token");
     }
   }
-};
+});
 
 // -------- REGISTER --------
 async function register() {
@@ -77,7 +79,7 @@ async function login() {
   localStorage.setItem("token", data.token);
 
   const params = new URLSearchParams(window.location.search);
-  let redirect = params.get("redirect") || window.location.origin;
+  let redirect = params.get("redirect") || (window.location.origin + "/dashboard.html");
 
   if (redirect.includes("?")) {
     redirect += "&token=" + data.token;
@@ -119,4 +121,65 @@ async function logout() {
 
   window.location.href =
     BASE + "/login.html?redirect=" + window.location.origin;
+}
+
+// -------- GOOGLE AUTH --------
+async function initGoogleAuth() {
+  try {
+    const res = await fetch(BASE + "/config");
+    const data = await res.json();
+    if (data.googleClientId) {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+
+      script.onload = () => {
+        google.accounts.id.initialize({
+          client_id: data.googleClientId,
+          callback: handleGoogleCallback
+        });
+        
+        const btnContainer = document.getElementById("google-btn");
+        if (btnContainer) {
+          google.accounts.id.renderButton(btnContainer, { theme: "outline", size: "large", width: "200" });
+        }
+      };
+    }
+  } catch (err) {
+    console.error("Failed to init Google Auth", err);
+  }
+}
+
+async function handleGoogleCallback(response) {
+  try {
+    const res = await fetch(BASE + "/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential: response.credential })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error);
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+
+    const params = new URLSearchParams(window.location.search);
+    let redirect = params.get("redirect") || (window.location.origin + "/dashboard.html");
+
+    if (redirect.includes("?")) {
+      redirect += "&token=" + data.token;
+    } else {
+      redirect += "?token=" + data.token;
+    }
+
+    window.location.href = redirect;
+  } catch (err) {
+    console.error("Google Auth error:", err);
+  }
 }

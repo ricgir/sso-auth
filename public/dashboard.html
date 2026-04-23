@@ -1,16 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Dashboard</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - SSO Platform</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body onload="checkAuthAndLoad()">
-  <h2 id="welcome"></h2>
-  <button onclick="logout()">Logout</button>
-</body>
 
-<h2 id="welcome"></h2>
+<div class="container" style="max-width: 500px;">
+  <h2 id="welcome">Loading Profile...</h2>
+  
+  <div style="margin: 30px 0; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 12px;">
+    <p style="color: rgba(255,255,255,0.8); font-size: 15px; margin-bottom: 0;">You have successfully authenticated via SSO.</p>
+  </div>
 
-<button onclick="logout()">Logout</button>
+  <button onclick="logout()" style="background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);">Sign Out</button>
+</div>
 
 <script src="script.js"></script>
 

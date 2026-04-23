@@ -1,19 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Register</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - SSO Platform</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-<h2>Register</h2>
+<div class="container">
+  <h2>Create Account</h2>
 
-<input id="username" placeholder="Username"><br><br>
-<input id="password" type="password" placeholder="Password"><br><br>
+  <div class="input-group">
+    <input id="username" placeholder="Username" autocomplete="username">
+  </div>
+  <div class="input-group">
+    <input id="password" type="password" placeholder="Password" autocomplete="new-password">
+  </div>
 
-<button onclick="register()">Register</button>
+  <button onclick="register()">Sign Up</button>
 
-<p>Already have an account?</p>
-<a href="/login.html">Go to Login</a>
+  <div class="divider">
+    <span>OR</span>
+  </div>
+
+  <div class="google-btn-wrapper" id="google-btn"></div>
+
+  <div class="footer-text">
+    <p>Already have an account? <a href="/login.html">Sign In</a></p>
+  </div>
+</div>
 
 <script src="script.js"></script>
 
